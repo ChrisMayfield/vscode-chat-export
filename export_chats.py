@@ -12,6 +12,7 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 WS_ROOT = Path.cwd()   # The script is run from the workspace root
 WS_HASH = Path.cwd()   # Will be found by searching workspaceStorage
@@ -75,7 +76,7 @@ def slugify(text: str) -> str:
     return text[:MAX_LEN].strip("-") or "chat"
 
 
-def overlap_length(a, b):
+def overlap_length(a: str, b: str) -> int:
     """Return the length of the longest overlap between end of a and start of b."""
     max_len = min(len(a), len(b))
     for k in range(max_len, 0, -1):
@@ -166,10 +167,10 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
                 continue
 
             # Prevent duplicate rendering of tool calls
-            callId = item.get("toolCallId")
-            if callId in call_ids:
+            call_id = item.get("toolCallId")
+            if call_id in call_ids:
                 continue
-            call_ids.add(callId)
+            call_ids.add(call_id)
 
             # Extract the main message text
             msg = item.get("pastTenseMessage") or item.get("invocationMessage")
@@ -198,9 +199,9 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
                 qText = q["message"]
                 a = data[q["id"]]
                 if "selectedValue" in a:
-                    aText = data[q["id"]]["selectedValue"]
+                    aText = a["selectedValue"]
                 else:
-                    aText = data[q["id"]]["selectedValues"]
+                    aText = a["selectedValues"]
                 responses.append(f"> Q: {qText}<br>\n> **A: {aText}**")
 
         # Link displayed as filename
@@ -225,7 +226,7 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
                 text = "🧠 " + text
 
             # Handle special cases
-            if len(responses) == 0:
+            if not responses:
                 responses.append(text)
             elif prev == "inlineReference":
                 responses[-1] += text  # continue previous response
@@ -238,7 +239,7 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
                     responses.append(text)
 
 
-def parse_session(file_path: Path,) -> tuple[list[dict], str | None, dict]:
+def parse_session(file_path: Path) -> tuple[list[dict], str | None, dict]:
     """Parse a JSONL session file into structured groups.
 
     Args:
@@ -251,7 +252,7 @@ def parse_session(file_path: Path,) -> tuple[list[dict], str | None, dict]:
     """
 
     # Initialize return values
-    groups: list[dict] = [
+    groups: list[dict[str, Any]] = [
         # "user_text": str,
         # "timestamp": datetime,
         # "responses": list[str],
@@ -259,7 +260,7 @@ def parse_session(file_path: Path,) -> tuple[list[dict], str | None, dict]:
         # "details": dict,
     ]
     title: str | None = None
-    metadata: dict = {
+    metadata: dict[str, Any] = {
         "creationDate": None,
         "sessionId": None,
         "model": None,
@@ -271,10 +272,10 @@ def parse_session(file_path: Path,) -> tuple[list[dict], str | None, dict]:
     print(f"Parsing session file: {file_path.name}")
     with open(file_path, "r", encoding="utf-8") as f:
         entries = [json.loads(line) for line in f if line.strip()]
-    for e in entries:
-        kind = e.get("kind")
-        k = e.get("k")
-        v = e.get("v")
+    for entry in entries:
+        kind = entry.get("kind")
+        k = entry.get("k")
+        v = entry.get("v")
 
         # Metadata
         if kind == 0 and isinstance(v, dict):
@@ -302,19 +303,19 @@ def parse_session(file_path: Path,) -> tuple[list[dict], str | None, dict]:
         elif kind == 2 and k == ["requests"] and isinstance(v, list):
             if len(v) != 1:
                 print(f"Warning: unexpected {len(v)} requests")
-            for req in v:
-                if not isinstance(req, dict):
+            for request in v:
+                if not isinstance(request, dict):
                     continue
 
                 # Extract the user's prompt
-                user_text = req.get("message", {}).get("text", "").strip()
+                user_text = request.get("message", {}).get("text", "").strip()
                 if not user_text:
                     continue
 
                 # Initialize group object
                 group = {
                     "user_text": user_text,
-                    "timestamp": ts_from_ms(req.get("timestamp")),
+                    "timestamp": ts_from_ms(request.get("timestamp")),
                     "responses": [],
                     "callIds": set(),
                     "timings": {},
@@ -323,7 +324,7 @@ def parse_session(file_path: Path,) -> tuple[list[dict], str | None, dict]:
                 groups.append(group)
 
                 # Process the response items
-                parse_response(req["response"], group["responses"], group["callIds"])
+                parse_response(request["response"], group["responses"], group["callIds"])
 
         # Continue request parsing
         elif kind == 2 and k[0] == "requests" and isinstance(v, list):
@@ -336,7 +337,7 @@ def parse_session(file_path: Path,) -> tuple[list[dict], str | None, dict]:
 # Markdown Rendering
 # ------------------------------------------------
 
-def escape_markdown_html(s):
+def escape_markdown_html(text: str) -> str:
     """Escape HTML-sensitive characters in a Markdown string.
 
     Behavior:
@@ -350,35 +351,35 @@ def escape_markdown_html(s):
     in_inline_code = False
     in_fenced_code = False
 
-    while i < len(s):
+    while i < len(text):
         # Detect fenced code blocks
-        if s.startswith("```", i):
+        if text.startswith("```", i):
             in_fenced_code = not in_fenced_code
             result.append("```")
             i += 3
             continue
 
         # Detect inline code
-        if not in_fenced_code and s[i] == "`":
+        if not in_fenced_code and text[i] == "`":
             in_inline_code = not in_inline_code
             result.append("`")
             i += 1
             continue
 
         # Detect line breaks
-        if s.startswith("<br>", i):
+        if text.startswith("<br>", i):
             result.append("<br>")
             i += 4
             continue
 
         # Append the next character
-        c = s[i]
+        c = text[i]
         if not in_inline_code and not in_fenced_code:
             if c == "<":
                 result.append("&lt;")
             elif c == ">":
                 # Keep leading blockquote marker
-                if i == 0 or s[i-1] == "\n":
+                if i == 0 or text[i-1] == "\n":
                     result.append(">")
                 else:
                     result.append("&gt;")
@@ -474,8 +475,8 @@ def main() -> None:
 
     # Find chat storage folder
     storage_dir = get_workspace_storage_dir()
-    WS_HASH = find_workspace_hash_dir(storage_dir)
-    jsonl_files = find_jsonl_files(WS_HASH)
+    workspace_hash_dir = find_workspace_hash_dir(storage_dir)
+    jsonl_files = find_jsonl_files(workspace_hash_dir)
 
     # Parse each session file
     for file in jsonl_files:

@@ -11,6 +11,7 @@
 ## 📚 Table of Contents
 
 1. [/init](#prompt-1)
+2. [Refactor export_chats.py to improve readability...](#prompt-2)
 
 ## <a name="prompt-1"></a> 💬 Prompt 1
 
@@ -118,4 +119,52 @@ Recommended related customizations to add next:
 - Use: Post-edit hook that validates markdown links and headings in docs/chat outputs, preventing broken references.
 
 If you want, I can also generate the first file-scoped instruction now (applyTo for Python only) so workspace-wide instructions stay minimal while Python rules stay precise.
+
+## <a name="prompt-2"></a> 💬 Prompt 2
+
+🕒 2026-04-01 17:21:51
+
+First progress: 0 min, 5 sec<br>
+Total elapsed: 0 min, 37 sec
+
+### 👤 User (ChrisMayfield)
+
+Refactor export_chats.py to improve readability without changing behavior.
+
+### 🤖 Assistant (GPT-5.3-Codex • 0.9x)
+
+I’m going to inspect the current `📄export_chats.py` and then do a minimal, behavior-preserving refactor focused on naming, structure, and local clarity.
+
+📖 Read `📄export_chats.py`
+
+I’ve identified a safe refactor set that improves naming and function structure while keeping logic/output intact; next I’ll patch `📄export_chats.py` in one pass and then run a quick error check.
+
+🔧 Generating patch (162 lines) in `📄export_chats.py`
+
+🔧 Checked `📄export_chats.py`, no problems found
+
+Refactored for readability in `📄export_chats.py` without changing behavior.
+
+What I changed:
+1. Added clearer type hints:
+1. Imported Any and typed dynamic dictionaries in parsing paths.
+2. Added explicit signature types for `📄export_chats.py` and `📄export_chats.py`.
+
+2. Improved naming clarity:
+1. Renamed temporary variables in parsing logic:
+1. `callId` → call_id
+2. `e` → entry
+3. `req` → request
+2. Renamed local workspace hash variable in `📄export_chats.py`:
+1. WS_HASH (local shadow) → workspace_hash_dir
+
+3. Small readability cleanups:
+1. Simplified empty-check in `📄export_chats.py` from len(responses) == 0 to not responses.
+2. Removed stray trailing comma in `📄export_chats.py` function signature.
+3. Renamed parameter `s` to text in `📄export_chats.py` and updated internal references for readability.
+
+Validation:
+1. Checked diagnostics for `📄export_chats.py`: no errors found.
+
+If you want, I can do a second pass limited to extracting one or two small helper functions (for metadata extraction and prompt-group creation) to further reduce cognitive load while still preserving behavior.
 
