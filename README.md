@@ -7,7 +7,7 @@ Simply download and run the Python script in your workspace root:
 python export_chats.py
 ```
 
-Your chats will exported as Markdown in the `.chatlogs` directory.
+Your chats will exported as Markdown in the `chat` directory.
 
 ## About the Script
 
