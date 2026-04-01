@@ -15,7 +15,7 @@ from pathlib import Path
 
 WS_ROOT = Path.cwd()   # The script is run from the workspace root
 WS_HASH = Path.cwd()   # Will be found by searching workspaceStorage
-DST_DIR = ".chatlogs"  # Directory to save exported Markdown files
+DST_DIR = "chat"       # Directory to save exported Markdown files
 MAX_LEN = 50           # Max length for title previews and slugs
 
 # ------------------------------------------------
@@ -176,10 +176,10 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
             if isinstance(msg, dict):
                 msg = msg.get("value", "")
             if not msg:
-                data = item["toolSpecificData"]
-                if data["kind"] == "terminal":
+                data = item.get("toolSpecificData")
+                if data and data["kind"] == "terminal":
                     msg = f"Ran `{data['confirmation']['commandLine']}`"
-            if isinstance(msg, str):
+            if msg and isinstance(msg, str):
                 emoji = detect_event_type(msg)
                 text = make_paths_relative(msg)
                 responses.append(f"{emoji} {text}")
@@ -196,7 +196,11 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
             data = item["data"]
             for q in item["questions"]:
                 qText = q["message"]
-                aText = data[q["id"]]["selectedValue"]
+                a = data[q["id"]]
+                if "selectedValue" in a:
+                    aText = data[q["id"]]["selectedValue"]
+                else:
+                    aText = data[q["id"]]["selectedValues"]
                 responses.append(f"> Q: {qText}<br>\n> **A: {aText}**")
 
         # Link displayed as filename
