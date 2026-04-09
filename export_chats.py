@@ -37,6 +37,8 @@ def get_workspace_storage_dir() -> Path:
 def find_workspace_hash_dir(storage_dir: Path) -> Path:
     """Find the workspaceStorage directory for the current workspace."""
     cwd_str = str(WS_ROOT.resolve())
+    if cwd_str.startswith("C:\\"):
+        cwd_str = cwd_str[2:].replace("\\", "/")
     for d in storage_dir.iterdir():
         meta = d / "workspace.json"
         if not meta.exists():
