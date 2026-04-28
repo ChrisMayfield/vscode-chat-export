@@ -13,6 +13,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 WS_ROOT = Path.cwd()   # The script is run from the workspace root
 WS_HASH = Path.cwd()   # Will be found by searching workspaceStorage
@@ -39,6 +40,7 @@ def find_workspace_hash_dir(storage_dir: Path) -> Path:
     cwd_str = str(WS_ROOT.resolve())
     if cwd_str.startswith("C:\\"):
         cwd_str = cwd_str[2:].replace("\\", "/")
+        cwd_str = quote(cwd_str)
     for d in storage_dir.iterdir():
         meta = d / "workspace.json"
         if not meta.exists():
@@ -199,11 +201,20 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
             data = item["data"]
             for q in item["questions"]:
                 qText = q["message"]
-                a = data[q["id"]]
-                if "selectedValue" in a:
+                a = data.get(q["id"], {})
+                if not isinstance(a, dict):
+                    aText = str(a)
+                elif "selectedValue" in a:
                     aText = a["selectedValue"]
-                else:
+                elif "selectedValues" in a:
                     aText = a["selectedValues"]
+                elif "freeformValue" in a:
+                    aText = a["freeformValue"]
+                else:
+                    aText = "(no answer captured)"
+
+                if isinstance(aText, list):
+                    aText = ", ".join(str(v) for v in aText)
                 responses.append(f"> Q: {qText}<br>\n> **A: {aText}**")
 
         # Link displayed as filename
