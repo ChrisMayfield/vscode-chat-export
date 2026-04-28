@@ -6,6 +6,7 @@ This script reconstructs chat sessions in a format similar to VS Code's
 "Copy All", but with improved structure, metadata, and timing information.
 """
 
+import argparse
 import json
 import os
 import re
@@ -479,17 +480,41 @@ def render_session(
 # Main
 # ------------------------------------------------
 
+def parse_args() -> argparse.Namespace:
+    """Parse optional src_dir and dst_dir arguments."""
+    parser = argparse.ArgumentParser(
+        description="Export VS Code Copilot Chat sessions to Markdown."
+    )
+    parser.add_argument(
+        "src_dir",
+        nargs="?",
+        type=Path,
+        help="Directory containing *.jsonl session files (default: auto-detect from VS Code storage)",
+    )
+    parser.add_argument(
+        "dst_dir",
+        nargs="?",
+        type=Path,
+        help=f"Directory to write exported Markdown files (default: {DST_DIR}/)",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
     """Main entry point for exporting chat sessions."""
+    args = parse_args()
 
     # Create output directory
-    out_dir = WS_ROOT / DST_DIR
+    out_dir = args.dst_dir if args.dst_dir else WS_ROOT / DST_DIR
     out_dir.mkdir(exist_ok=True)
 
     # Find chat storage folder
-    storage_dir = get_workspace_storage_dir()
-    workspace_hash_dir = find_workspace_hash_dir(storage_dir)
-    jsonl_files = find_jsonl_files(workspace_hash_dir)
+    if args.src_dir:
+        jsonl_files = list(args.src_dir.glob("*.jsonl"))
+    else:
+        storage_dir = get_workspace_storage_dir()
+        workspace_hash_dir = find_workspace_hash_dir(storage_dir)
+        jsonl_files = find_jsonl_files(workspace_hash_dir)
 
     # Parse each session file
     for file in jsonl_files:
