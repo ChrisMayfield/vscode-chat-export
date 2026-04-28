@@ -184,7 +184,10 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
             if not msg:
                 data = item.get("toolSpecificData")
                 if data and data["kind"] == "terminal":
-                    msg = f"Ran `{data['confirmation']['commandLine']}`"
+                    if "confirmation" in data:
+                        msg = f"Ran `{data['confirmation']['commandLine']}`"
+                    elif "alternativeRecommendation" in data:
+                        msg = data["alternativeRecommendation"]
             if msg and isinstance(msg, str):
                 emoji = detect_event_type(msg)
                 text = make_paths_relative(msg)
@@ -227,7 +230,8 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
                 name = make_relative(ref["path"])
             else:
                 name = make_relative(ref["uri"]["path"])
-            responses[-1] += name
+            if responses:
+                responses[-1] += name
 
         # General text responses
         else:
@@ -300,7 +304,10 @@ def parse_session(file_path: Path) -> tuple[list[dict], str | None, dict]:
             except Exception:
                 pass
             try:
-                metadata["account"] = v["inputState"]["selectedModel"]["metadata"]["auth"]["accountLabel"]
+                if "inputState" in v:
+                    metadata["account"] = v["inputState"]["selectedModel"]["metadata"]["auth"]["accountLabel"]
+                else:
+                    metadata["account"] = v["metadata"]["auth"]["accountLabel"]
             except Exception:
                 pass
 
@@ -332,8 +339,8 @@ def parse_session(file_path: Path) -> tuple[list[dict], str | None, dict]:
                     "timestamp": ts_from_ms(request.get("timestamp")),
                     "responses": [],
                     "callIds": set(),
-                    "timings": {},
-                    "details": {},
+                    "timings": request.get("result", {}).get("timings", {}),
+                    "details": request.get("result", {}).get("details", {}),
                 }
                 groups.append(group)
 
