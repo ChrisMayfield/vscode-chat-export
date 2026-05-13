@@ -39,7 +39,7 @@ def get_workspace_storage_dir() -> Path:
 def find_workspace_hash_dir(storage_dir: Path) -> Path:
     """Find the workspaceStorage directory for the current workspace."""
     cwd_str = str(WS_ROOT.resolve())
-    if cwd_str.startswith("C:\\"):
+    if len(cwd_str) >= 2 and cwd_str[1] == ":":
         cwd_str = cwd_str[2:].replace("\\", "/")
         cwd_str = quote(cwd_str)
     for d in storage_dir.iterdir():
@@ -95,16 +95,17 @@ def make_relative(path: str) -> str:
 
     # Determine emoji based on file or folder
     resolved = Path(path).resolve()
-    if resolved.exists() and resolved.is_file():
-        emoji = "📄"
+    if resolved.exists():
+        emoji = "📄" if resolved.is_file() else "📁"
     else:
-        emoji = "📁"
+        emoji = "📄" if resolved.suffix else "📁"
 
     # Try to make path relative to workspace or hash dir
     rel = "."
     for base in (WS_ROOT.resolve(), WS_HASH.resolve()):
         try:
             rel = str(resolved.relative_to(base))
+            break
         except ValueError:
             continue
 
@@ -195,8 +196,9 @@ def parse_response(items: list, responses: list, call_ids: set) -> None:
 
         # Progress updates
         elif kind == "progressTaskSerialized":
-            text = item["content"]["value"]
-            responses.append("⏳ " + text)
+            text = item.get("content", {}).get("value")
+            if text:
+                responses.append("⏳ " + text)
 
         # Interactive questions
         elif kind == "questionCarousel":
@@ -316,7 +318,7 @@ def parse_session(file_path: Path) -> tuple[list[dict], str | None, dict]:
             title = v.strip()
 
         # Capture result metadata (timings + model details)
-        elif kind == 1 and groups and len(k) == 3 and k[0] == "requests" and k[2] == "result":
+        elif kind == 1 and groups and k and len(k) == 3 and k[0] == "requests" and k[2] == "result":
             groups[-1]["timings"] = v.get("timings", {})
             groups[-1]["details"] = v.get("details", {})
 
@@ -345,10 +347,10 @@ def parse_session(file_path: Path) -> tuple[list[dict], str | None, dict]:
                 groups.append(group)
 
                 # Process the response items
-                parse_response(request["response"], group["responses"], group["callIds"])
+                parse_response(request.get("response", []), group["responses"], group["callIds"])
 
         # Continue request parsing
-        elif kind == 2 and groups and k[0] == "requests" and isinstance(v, list):
+        elif kind == 2 and groups and k and k[0] == "requests" and isinstance(v, list):
             parse_response(v, groups[-1]["responses"], groups[-1]["callIds"])
 
     return groups, title, metadata
@@ -374,7 +376,7 @@ def escape_markdown_html(text: str) -> str:
 
     while i < len(text):
         # Detect fenced code blocks
-        if text.startswith("```", i):
+        if not in_inline_code and text.startswith("```", i):
             in_fenced_code = not in_fenced_code
             result.append("```")
             i += 3
@@ -473,7 +475,8 @@ def render_session(
 
         lines.append(f"### 👤 User ({metadata['account']})\n\n")
         lines.append(g["user_text"] + "\n\n")
-        lines.append(f"### 🤖 Assistant ({g['details']})\n\n")
+        detail_str = g['details'] or metadata['model'] or ""
+        lines.append(f"### 🤖 Assistant ({detail_str})\n\n")
 
         for line in g["responses"]:
             line = escape_markdown_html(line)
@@ -509,6 +512,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     """Main entry point for exporting chat sessions."""
+    global WS_HASH
     args = parse_args()
 
     # Create output directory
@@ -517,11 +521,12 @@ def main() -> None:
 
     # Find chat storage folder
     if args.src_dir:
+        WS_HASH = Path(args.src_dir)
         jsonl_files = list(args.src_dir.glob("*.jsonl"))
     else:
         storage_dir = get_workspace_storage_dir()
-        workspace_hash_dir = find_workspace_hash_dir(storage_dir)
-        jsonl_files = find_jsonl_files(workspace_hash_dir)
+        WS_HASH = find_workspace_hash_dir(storage_dir)
+        jsonl_files = find_jsonl_files(WS_HASH)
 
     # Parse each session file
     for file in jsonl_files:

@@ -28,7 +28,7 @@ Total elapsed: 2 min, 5 sec
 
 I’m going to bootstrap workspace instructions by first loading the required agent-customization skill guidance, then I’ll scan existing convention files and repo docs so I can generate or merge a focused `copilot-instructions` file without duplicating existing documentation.
 
-📖 Read skill [agent-customization]`📁SKILL.md?vscodeLinkType%3Dskill`
+📖 Read skill [agent-customization]`📄SKILL.md?vscodeLinkType%3Dskill`
 
 📖 Read skill `agent-customization`: `📄workspace-instructions.md`
 
@@ -44,7 +44,7 @@ I found no existing workspace instruction file, so I’ll now run an exploration
 
 🔧 Explore repo conventions
 
-📖 Read `📁export_chats.py#1-1`, lines 1 to 100
+📖 Read `📄export_chats.py#1-1`, lines 1 to 100
 
 📖 Read `📁vscode-chat-export`
 
@@ -52,9 +52,9 @@ I found no existing workspace instruction file, so I’ll now run an exploration
 
 📖 Read `📄init/README.md`
 
-📖 Read `📁export_chats.py#100-100`, lines 100 to 300
+📖 Read `📄export_chats.py#100-100`, lines 100 to 300
 
-📖 Read `📁export_chats.py#300-300`, lines 300 to 497
+📖 Read `📄export_chats.py#300-300`, lines 300 to 497
 
 🔧 Searched for files matching `**/{setup.py,requirements.txt,pyproject.toml,Makefile,.github,tests,.gitignore}`, no matches
 
@@ -68,9 +68,9 @@ I’ve got the exploration summary and will quickly verify key details in `📄R
 
 📖 Read `📄README.md`
 
-📖 Read `📁export_chats.py#1-1`, lines 1 to 320
+📖 Read `📄export_chats.py#1-1`, lines 1 to 320
 
-📖 Read `📁export_chats.py#320-320`, lines 320 to 497
+📖 Read `📄export_chats.py#320-320`, lines 320 to 497
 
 I verified the repo and identified a key discrepancy (`📄README.md` says output is `.chatlogs` while code writes to `📁chat`), and I’ll include that as an agent-critical pitfall in a new `.github/copilot-instructions.md`.
 
